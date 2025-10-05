@@ -2,7 +2,7 @@ apiVersion: v2
 name: cubel-cloud
 description: A Helm chart for deploying an application with PostgreSQL database
 type: application
-version: 0.1.2
+version: 0.1.3
 appVersion: "1.0.0"
 
 dependencies:
