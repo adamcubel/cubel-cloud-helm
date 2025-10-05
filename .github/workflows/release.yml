@@ -79,24 +79,45 @@ jobs:
           helm dependency update
       - name: Package Helm chart
         run: |
-          helm package .
+          mkdir -p .cr-release-packages
+          helm package . -d .cr-release-packages
       - name: Create Git tag
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           git tag -a "v${VERSION}" -m "Release version ${VERSION}"
           git push origin "v${VERSION}"
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.6.0
-        env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
         with:
-          charts_dir: .
-          skip_packaging: true
-          mark_as_latest: true
-      - name: Upload chart to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .cr-release-packages
-          destination_dir: charts
-          enable_jekyll: false
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          files: .cr-release-packages/*.tgz
+          generate_release_notes: true
+      - name: Update Helm repository index
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+          # Clone gh-pages branch or create it
+          git clone --single-branch --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages || {
+            echo "Creating new gh-pages branch"
+            mkdir gh-pages
+            cd gh-pages
+            git init
+            git checkout -b gh-pages
+            git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          }
+
+          cd gh-pages
+
+          # Copy packaged charts
+          mkdir -p charts
+          cp ../.cr-release-packages/*.tgz charts/ || true
+
+          # Generate index
+          helm repo index charts --url "https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}"
+
+          # Commit and push
+          git add charts/
+          git commit -m "Release v${{ steps.version.outputs.version }}" || echo "No changes"
+          git push origin gh-pages
