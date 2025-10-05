@@ -36,6 +36,23 @@ jobs:
         run: |
           helm template test-release . > /dev/null
           echo "✅ Chart templates render successfully"
+      - name: Validate PR title has version bump
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $PR_TITLE"
+
+          if [[ ! "$PR_TITLE" =~ \[(major|minor|patch)\] ]]; then
+            echo "❌ ERROR: PR title must contain [major], [minor], or [patch]"
+            echo ""
+            echo "Examples:"
+            echo "  [major] Breaking change to API"
+            echo "  [minor] Add new feature"
+            echo "  [patch] Fix bug in deployment"
+            echo ""
+            exit 1
+          fi
+
+          echo "✅ PR title contains version bump indicator"
       - name: Determine next version
         id: version
         run: |
@@ -48,7 +65,6 @@ jobs:
 
           # Check PR title for version bump indicator
           PR_TITLE="${{ github.event.pull_request.title }}"
-          echo "PR Title: $PR_TITLE"
 
           if [[ "$PR_TITLE" =~ \[major\] ]]; then
             major=$((major + 1))
@@ -62,10 +78,6 @@ jobs:
           elif [[ "$PR_TITLE" =~ \[patch\] ]]; then
             patch=$((patch + 1))
             BUMP_TYPE="patch"
-          else
-            echo "⚠️  No version bump indicator found in PR title"
-            echo "Add [major], [minor], or [patch] to the PR title to specify version bump"
-            BUMP_TYPE="none"
           fi
 
           NEW_VERSION="${major}.${minor}.${patch}"
@@ -82,18 +94,10 @@ jobs:
             let message = '### 🔍 Helm Chart Build Summary\n\n';
             message += '✅ Chart builds successfully\n';
             message += '✅ Linting passed\n';
-            message += '✅ Templates render correctly\n\n';
-
-            if (bumpType !== 'none') {
-              message += `📦 **Next version**: \`${version}\` (${bumpType} bump)\n\n`;
-              message += 'This version will be applied when the PR is merged to main.';
-            } else {
-              message += '⚠️ **No version bump specified**\n\n';
-              message += 'Add `[major]`, `[minor]`, or `[patch]` to your PR title to specify the version bump.\n';
-              message += '- `[major]` - Breaking changes (x.0.0)\n';
-              message += '- `[minor]` - New features (0.x.0)\n';
-              message += '- `[patch]` - Bug fixes (0.0.x)';
-            }
+            message += '✅ Templates render correctly\n';
+            message += '✅ Version bump indicator found\n\n';
+            message += `📦 **Next version**: \`${version}\` (${bumpType} bump)\n\n`;
+            message += 'This version will be applied when the PR is merged to main.';
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
