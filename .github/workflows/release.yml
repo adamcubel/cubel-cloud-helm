@@ -95,8 +95,8 @@ jobs:
           generate_release_notes: true
       - name: Update Helm repository index
         run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git config --global user.name "$GITHUB_ACTOR"
+          git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
           # Clone gh-pages branch or create it
           git clone --single-branch --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages || {
@@ -109,9 +109,6 @@ jobs:
           }
 
           cd gh-pages
-
-          # Remove .gitignore to avoid conflicts with charts/ directory
-          # rm -f .gitignore
 
           # Copy packaged charts
           mkdir -p charts
