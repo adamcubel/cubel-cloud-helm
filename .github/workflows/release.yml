@@ -110,6 +110,9 @@ jobs:
 
           cd gh-pages
 
+          # Remove .gitignore to avoid conflicts with charts/ directory
+          # rm -f .gitignore
+
           # Copy packaged charts
           mkdir -p charts
           cp ../.cr-release-packages/*.tgz charts/ || true
@@ -117,7 +120,7 @@ jobs:
           # Generate index
           helm repo index charts --url "https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}"
 
-          # Commit and push
-          git add charts/
+          # Commit and push (use -f to force add ignored files)
+          git add -f charts/
           git commit -m "Release v${{ steps.version.outputs.version }}" || echo "No changes"
           git push origin gh-pages
