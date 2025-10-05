@@ -1,0 +1,102 @@
+name: Release Helm Chart
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  pull-requests: read
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+      - name: Determine version bump from merged PR
+        id: version
+        run: |
+          # Get the merge commit message (contains PR title)
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Commit message: $COMMIT_MSG"
+
+          # Get current version from Chart.yaml
+          CURRENT_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
+          echo "Current version: $CURRENT_VERSION"
+
+          # Parse version
+          IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+
+          # Check for version bump indicator in commit message
+          if [[ "$COMMIT_MSG" =~ \[major\] ]]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+            BUMP_TYPE="major"
+          elif [[ "$COMMIT_MSG" =~ \[minor\] ]]; then
+            minor=$((minor + 1))
+            patch=0
+            BUMP_TYPE="minor"
+          elif [[ "$COMMIT_MSG" =~ \[patch\] ]]; then
+            patch=$((patch + 1))
+            BUMP_TYPE="patch"
+          else
+            # Default to patch if no indicator
+            patch=$((patch + 1))
+            BUMP_TYPE="patch (default)"
+          fi
+
+          NEW_VERSION="${major}.${minor}.${patch}"
+          echo "New version: $NEW_VERSION (${BUMP_TYPE})"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+      - name: Update Chart.yaml version
+        run: |
+          NEW_VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/^version:.*/version: $NEW_VERSION/" Chart.yaml
+          echo "Updated Chart.yaml to version $NEW_VERSION"
+      - name: Commit version update
+        run: |
+          git add Chart.yaml
+          git commit -m "chore: bump chart version to ${{ steps.version.outputs.version }}" || echo "No changes to commit"
+          git push origin main || echo "No changes to push"
+      - name: Add Bitnami repository
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+      - name: Update Helm dependencies
+        run: |
+          helm dependency update
+      - name: Package Helm chart
+        run: |
+          helm package .
+      - name: Create Git tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git tag -a "v${VERSION}" -m "Release version ${VERSION}"
+          git push origin "v${VERSION}"
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        with:
+          charts_dir: .
+          skip_packaging: true
+          mark_as_latest: true
+      - name: Upload chart to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .cr-release-packages
+          destination_dir: charts
+          enable_jekyll: false

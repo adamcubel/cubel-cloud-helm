@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "myapp.fullname" . }}
+  labels:
+    {{- include "myapp.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "myapp.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "myapp.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "myapp.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      # Init container to wait for PostgreSQL to be ready and prepare config
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.28
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-postgresql.{{ .Release.Namespace }}.svc.cluster.local {{ .Values.database.port }}; do echo waiting for database; sleep 2; done;']
+        - name: prepare-config
+          image: busybox:1.28
+          command:
+            - sh
+            - -c
+            - |
+              cp /tmp/config/database.json /app/config/database.json
+              sed -i "s/PASSWORD_PLACEHOLDER/$DB_PASSWORD/g" /app/config/database.json
+              chmod 444 /app/config/database.json
+              {{- if .Values.secrets.oidc.enabled }}
+              cp /tmp/config/oidc.json /app/config/oidc.json
+              sed -i "s/CLIENT_SECRET_PLACEHOLDER/$OIDC_CLIENT_SECRET/g" /app/config/oidc.json
+              chmod 444 /app/config/oidc.json
+              {{- end }}
+              cp /tmp/config/applications.json /app/config/applications.json
+              chmod 444 /app/config/applications.json
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresql.auth.existingSecret | default (printf "%s-postgresql" .Release.Name) }}
+                  key: password
+            {{- if .Values.secrets.oidc.enabled }}
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.oidc.secretName }}
+                  key: {{ .Values.secrets.oidc.secretKey }}
+            {{- end }}
+          volumeMounts:
+            - name: config-template
+              mountPath: /tmp/config
+            - name: app-config
+              mountPath: /app/config
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            - name: api
+              containerPort: {{ .Values.service.additionalPort }}
+              protocol: TCP
+          volumeMounts:
+            - name: app-config
+              mountPath: /app/config
+              readOnly: true
+            {{- if .Values.secrets.gravatar.enabled }}
+            - name: gravatar-secret
+              mountPath: /app/config/gravatar-api-key
+              subPath: {{ .Values.secrets.gravatar.secretKey }}
+              readOnly: true
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config-template
+          configMap:
+            name: {{ include "myapp.fullname" . }}-config
+        - name: app-config
+          emptyDir: {}
+        {{- if .Values.secrets.gravatar.enabled }}
+        - name: gravatar-secret
+          secret:
+            secretName: {{ .Values.secrets.gravatar.secretName }}
+            defaultMode: 0400
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
