@@ -124,3 +124,26 @@ jobs:
           git add -f charts/
           git commit -m "Release v${{ steps.version.outputs.version }}" || echo "No changes"
           git push origin gh-pages
+      - name: Display repository URLs
+        run: |
+          echo "=============================================="
+          echo "🎉 Helm Chart Released Successfully!"
+          echo "=============================================="
+          echo ""
+          echo "📦 Version: v${{ steps.version.outputs.version }}"
+          echo ""
+          echo "📥 Add the Helm repository:"
+          echo "   helm repo add ${{ github.event.repository.name }} https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          echo ""
+          echo "🔄 Update repositories:"
+          echo "   helm repo update"
+          echo ""
+          echo "⬇️  Install the chart:"
+          echo "   helm install myapp ${{ github.event.repository.name }}/${{ github.event.repository.name }} --version ${{ steps.version.outputs.version }}"
+          echo ""
+          echo "🔗 Links:"
+          echo "   • GitHub Release: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}"
+          echo "   • Helm Repository: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          echo "   • Chart Package: https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}/${{ github.event.repository.name }}-${{ steps.version.outputs.version }}.tgz"
+          echo ""
+          echo "=============================================="
