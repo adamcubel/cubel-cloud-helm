@@ -2,9 +2,9 @@
 replicaCount: 1
 
 image:
-  repository: nginx  # Replace with your application image
+  repository: docker.io/cubel/cubel-cloud
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: v0.0.2
 
 imagePullSecrets: []
 nameOverride: ""
