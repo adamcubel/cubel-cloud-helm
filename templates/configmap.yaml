@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "myapp.fullname" . }}-config
+  labels:
+    {{- include "myapp.labels" . | nindent 4 }}
+data:
+  database.json: |
+    {
+      "host": "{{ .Release.Name }}-postgresql.{{ .Release.Namespace }}.svc.cluster.local",
+      "port": {{ .Values.database.port }},
+      "database": "{{ .Values.database.name }}",
+      "user": "{{ .Values.postgresql.auth.username }}",
+      "password": "PASSWORD_PLACEHOLDER",
+      "ssl": {{ .Values.database.ssl }},
+      "max": {{ .Values.database.poolMax }},
+      "idleTimeoutMillis": {{ .Values.database.idleTimeoutMillis }},
+      "connectionTimeoutMillis": {{ .Values.database.connectionTimeoutMillis }}
+    }
+  {{- if .Values.secrets.oidc.enabled }}
+  oidc.json: |
+    {
+      "issuer": "{{ .Values.oidc.issuer }}",
+      "clientId": "{{ .Values.oidc.clientId }}",
+      "clientSecret": "CLIENT_SECRET_PLACEHOLDER",
+      "redirectUri": "{{ .Values.oidc.redirectUri }}",
+      "responseType": "{{ .Values.oidc.responseType }}",
+      "scope": "{{ .Values.oidc.scope }}",
+      "requireHttps": {{ .Values.oidc.requireHttps }},
+      "showDebugInformation": {{ .Values.oidc.showDebugInformation }},
+      "strictDiscoveryDocumentValidation": {{ .Values.oidc.strictDiscoveryDocumentValidation }},
+      "skipIssuerCheck": {{ .Values.oidc.skipIssuerCheck }},
+      "disablePKCE": {{ .Values.oidc.disablePKCE }},
+      "clearHashAfterLogin": {{ .Values.oidc.clearHashAfterLogin }},
+      "logoutUrl": "{{ .Values.oidc.logoutUrl }}",
+      "customQueryParams": {{ .Values.oidc.customQueryParams | toJson }}
+    }
+  {{- end }}
+  applications.json: |
+    {
+      "applications": {{ .Values.applications | toJson }}
+    }

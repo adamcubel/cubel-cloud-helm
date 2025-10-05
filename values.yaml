@@ -1,0 +1,129 @@
+# Application configuration
+replicaCount: 1
+
+image:
+  repository: nginx  # Replace with your application image
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# External secrets configuration
+secrets:
+  # Gravatar API key secret
+  gravatar:
+    enabled: false
+    # Name of the existing secret
+    secretName: "gravatar-api-key"
+    # Key within the secret that contains the API key
+    secretKey: "api-key"
+  # OIDC client secret
+  oidc:
+    enabled: false
+    # Name of the existing secret containing the OIDC client secret
+    secretName: ""
+    # Key within the secret that contains the client secret
+    secretKey: "client-secret"
+
+# OIDC configuration
+oidc:
+  issuer: "https://your-keycloak-domain/realms/your-realm"
+  clientId: "your-client-id"
+  redirectUri: "http://localhost:3000/auth/callback"
+  responseType: "code"
+  scope: "openid profile email"
+  requireHttps: true
+  showDebugInformation: false
+  strictDiscoveryDocumentValidation: true
+  skipIssuerCheck: false
+  disablePKCE: false
+  clearHashAfterLogin: true
+  logoutUrl: "http://localhost:3000/logout"
+  customQueryParams: {}
+
+# Applications configuration
+applications:
+  - id: kubernetes
+    name: Kubernetes
+    description: Container orchestration platform for automating deployment and scaling.
+    icon: assets/kubernetes.svg
+    url: https://kubernetes.example.com
+  - id: vault
+    name: HashiCorp Vault
+    description: Secure secrets management and data protection.
+    icon: assets/vault.svg
+    url: https://vault.example.com
+    private: true
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 80
+  additionalPort: 3001
+
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Database connection configuration
+database:
+  # Short hostname (will be expanded to full DNS path in templates)
+  host: "{{ .Release.Name }}-postgresql"
+  # Namespace for DNS resolution (defaults to Release namespace)
+  namespace: "{{ .Release.Namespace }}"
+  port: 5432
+  name: cubel_cloud
+  username: cubel_user
+  # Password will be retrieved from the PostgreSQL secret
+  # Additional connection pool settings
+  ssl: false
+  poolMax: 20
+  idleTimeoutMillis: 30000
+  connectionTimeoutMillis: 2000
+
+# PostgreSQL configuration (Bitnami chart)
+postgresql:
+  enabled: true
+  auth:
+    username: cubel_user
+    password: changeme  # Used only if existingSecret is not set
+    database: cubel_cloud
+    # Use existing secret for password (recommended for production)
+    # The secret should contain keys: "postgres-password" and "password"
+    # Example: kubectl create secret generic my-postgres-secret \
+    #   --from-literal=postgres-password=adminpass \
+    #   --from-literal=password=userpass
+    existingSecret: ""
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+      # storageClass: ""  # Specify storage class if needed

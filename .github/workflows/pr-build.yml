@@ -1,0 +1,103 @@
+name: Build Helm Chart (PR)
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened, edited]
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+      - name: Add Bitnami repository
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo update
+      - name: Update Helm dependencies
+        run: |
+          helm dependency update
+      - name: Lint Helm chart
+        run: |
+          helm lint .
+      - name: Package Helm chart (test only)
+        run: |
+          helm package .
+      - name: Template Helm chart (smoke test)
+        run: |
+          helm template test-release . > /dev/null
+          echo "✅ Chart templates render successfully"
+      - name: Determine next version
+        id: version
+        run: |
+          # Get current version from Chart.yaml
+          CURRENT_VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
+          echo "Current version: $CURRENT_VERSION"
+
+          # Parse version
+          IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+
+          # Check PR title for version bump indicator
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $PR_TITLE"
+
+          if [[ "$PR_TITLE" =~ \[major\] ]]; then
+            major=$((major + 1))
+            minor=0
+            patch=0
+            BUMP_TYPE="major"
+          elif [[ "$PR_TITLE" =~ \[minor\] ]]; then
+            minor=$((minor + 1))
+            patch=0
+            BUMP_TYPE="minor"
+          elif [[ "$PR_TITLE" =~ \[patch\] ]]; then
+            patch=$((patch + 1))
+            BUMP_TYPE="patch"
+          else
+            echo "⚠️  No version bump indicator found in PR title"
+            echo "Add [major], [minor], or [patch] to the PR title to specify version bump"
+            BUMP_TYPE="none"
+          fi
+
+          NEW_VERSION="${major}.${minor}.${patch}"
+          echo "Next version will be: $NEW_VERSION (${BUMP_TYPE} bump)"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.version.outputs.version }}';
+            const bumpType = '${{ steps.version.outputs.bump_type }}';
+
+            let message = '### 🔍 Helm Chart Build Summary\n\n';
+            message += '✅ Chart builds successfully\n';
+            message += '✅ Linting passed\n';
+            message += '✅ Templates render correctly\n\n';
+
+            if (bumpType !== 'none') {
+              message += `📦 **Next version**: \`${version}\` (${bumpType} bump)\n\n`;
+              message += 'This version will be applied when the PR is merged to main.';
+            } else {
+              message += '⚠️ **No version bump specified**\n\n';
+              message += 'Add `[major]`, `[minor]`, or `[patch]` to your PR title to specify the version bump.\n';
+              message += '- `[major]` - Breaking changes (x.0.0)\n';
+              message += '- `[minor]` - New features (0.x.0)\n';
+              message += '- `[patch]` - Bug fixes (0.0.x)';
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
