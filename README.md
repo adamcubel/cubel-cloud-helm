@@ -23,7 +23,7 @@ helm repo update
 ### Install the chart
 
 ```bash
-helm install myapp cubel-cloud/myapp --namespace production --create-namespace
+helm install cubelcloud cubel-cloud/cubelcloud --namespace production --create-namespace
 ```
 
 ## Prerequisites
@@ -85,7 +85,7 @@ kubectl create secret generic my-gravatar-secret \
 ### Example Installation with Custom Values
 
 ```bash
-helm install myapp cubel-cloud/myapp \
+helm install cubelcloud cubel-cloud/cubelcloud \
   --namespace production \
   --create-namespace \
   --set postgresql.auth.existingSecret=my-postgres-secret \
@@ -93,7 +93,7 @@ helm install myapp cubel-cloud/myapp \
   --set secrets.oidc.secretName=my-oidc-secret \
   --set oidc.issuer=https://keycloak.example.com/realms/myrealm \
   --set oidc.clientId=my-client-id \
-  --set image.repository=myregistry/myapp \
+  --set image.repository=myregistry/cubelcloud \
   --set image.tag=v1.0.0
 ```
 
@@ -103,7 +103,7 @@ Create `custom-values.yaml`:
 
 ```yaml
 image:
-  repository: myregistry/myapp
+  repository: myregistry/cubelcloud
   tag: v1.0.0
 
 postgresql:
@@ -120,8 +120,8 @@ secrets:
 
 oidc:
   issuer: https://keycloak.example.com/realms/production
-  clientId: myapp-client
-  redirectUri: https://myapp.example.com/auth/callback
+  clientId: cubelcloud-client
+  redirectUri: https://cubelcloud.example.com/auth/callback
 
 applications:
   - id: kubernetes
@@ -139,7 +139,7 @@ applications:
 Install:
 
 ```bash
-helm install myapp cubel-cloud/myapp -f custom-values.yaml --namespace production --create-namespace
+helm install cubelcloud cubel-cloud/cubelcloud -f custom-values.yaml --namespace production --create-namespace
 ```
 
 ## Configuration Files
@@ -154,13 +154,13 @@ The chart creates the following configuration files in the container at `/app/co
 ## Upgrade
 
 ```bash
-helm upgrade myapp cubel-cloud/myapp --namespace production
+helm upgrade cubelcloud cubel-cloud/cubelcloud --namespace production
 ```
 
 ## Uninstall
 
 ```bash
-helm uninstall myapp --namespace production
+helm uninstall cubelcloud --namespace production
 ```
 
 ## Development
@@ -179,7 +179,7 @@ cd cubel-cloud-helm
 helm dependency update
 
 # Install locally
-helm install myapp . --namespace development --create-namespace
+helm install cubelcloud . --namespace development --create-namespace
 ```
 
 ### Pre-commit Hooks
@@ -225,10 +225,10 @@ git commit --no-verify
 
 ```bash
 # Dry-run to preview
-helm install myapp . --dry-run --debug
+helm install cubelcloud . --dry-run --debug
 
 # Template rendering
-helm template myapp . > output.yaml
+helm template cubelcloud . > output.yaml
 
 # Lint the chart
 helm lint .

@@ -1,14 +1,14 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "myapp.name" -}}
+{{- define "cubelcloud.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create a default fully qualified app name.
 */}}
-{{- define "myapp.fullname" -}}
+{{- define "cubelcloud.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -24,16 +24,16 @@ Create a default fully qualified app name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "myapp.chart" -}}
+{{- define "cubelcloud.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "myapp.labels" -}}
-helm.sh/chart: {{ include "myapp.chart" . }}
-{{ include "myapp.selectorLabels" . }}
+{{- define "cubelcloud.labels" -}}
+helm.sh/chart: {{ include "cubelcloud.chart" . }}
+{{ include "cubelcloud.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -43,17 +43,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "myapp.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "myapp.name" . }}
+{{- define "cubelcloud.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "cubelcloud.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "myapp.serviceAccountName" -}}
+{{- define "cubelcloud.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "myapp.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "cubelcloud.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
