@@ -2,8 +2,24 @@ apiVersion: v1
 entries:
   cubel-cloud:
   - apiVersion: v2
+    appVersion: 0.2.0
+    created: "2025-10-06T13:11:39.495970319Z"
+    dependencies:
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: https://charts.bitnami.com/bitnami
+      version: 16.7.27
+    description: A Helm chart for deploying the homepage application with PostgreSQL
+      database
+    digest: 985facf341e8dfd7c8babb0eba1b70163a6e497823069ae7c4437efff1543a23
+    name: cubel-cloud
+    type: application
+    urls:
+    - https://github.com/adamcubel/cubel-cloud-helm/releases/download/v0.2.1/cubel-cloud-0.2.1.tgz
+    version: 0.2.1
+  - apiVersion: v2
     appVersion: 1.0.0
-    created: "2025-10-05T15:35:46.541957466Z"
+    created: "2025-10-06T13:11:39.488473402Z"
     dependencies:
     - condition: postgresql.enabled
       name: postgresql
@@ -14,6 +30,6 @@ entries:
     name: cubel-cloud
     type: application
     urls:
-    - https://github.com/adamcubel/cubel-cloud-helm/releases/download/v0.2.0/cubel-cloud-0.2.0.tgz
+    - https://github.com/adamcubel/cubel-cloud-helm/releases/download/v0.2.1/cubel-cloud-0.2.0.tgz
     version: 0.2.0
-generated: "2025-10-05T15:35:46.534572002Z"
+generated: "2025-10-06T13:11:39.481204919Z"
