@@ -82,7 +82,6 @@ spec:
           volumeMounts:
             - name: app-config
               mountPath: /app/config
-              readOnly: true
             {{- if .Values.secrets.gravatar.enabled }}
             - name: gravatar-secret
               mountPath: /app/config/gravatar-api-key
